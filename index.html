@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preload" as="image" href="/textures/paper-texture.webp" type="image/webp" fetchpriority="high" crossorigin>
+<link rel="icon" type="image/png" href="/favico.png">
+<meta name="theme-color" content="#fafafa">
+<title>Tomasz "ITom" Szmajda | Creative 3D Portfolio</title>
+<meta name="description" content="Interactive 3D developer portfolio by Tomasz 'ITom' Szmajda. Explore WebGL experiments, React projects & GSAP animations in a hand-drawn gallery.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Gloria+Hallelujah&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Cabin Sketch';src:url('/fonts/CabinSketch-Bold.ttf') format('truetype');font-weight:700;font-style:normal}
+@font-face{font-family:'Cabin Sketch';src:url('/fonts/CabinSketch-Regular.ttf') format('truetype');font-weight:400;font-style:normal}
+@font-face{font-family:'Fredericka the Great';src:url('/fonts/FrederickatheGreat-Regular.ttf') format('truetype');font-weight:400;font-style:normal}
+@font-face{font-family:'Rubik Scribble';src:url('/fonts/RubikScribble-Regular.ttf') format('truetype');font-weight:400;font-style:normal}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+@media(max-width:767px){html{font-size:14px}}
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#fafafa;color:#0a0a0a;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  height:100vh;height:100dvh;
+  -ms-overflow-style:none;scrollbar-width:none
+}
+body::-webkit-scrollbar{display:none}
+a{color:inherit;text-decoration:none}
+button{background:none;border:none;cursor:pointer;font:inherit;color:inherit}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* Paper texture BG */
+.paper-bg{position:relative}
+.paper-bg::before{
+  content:'';position:absolute;inset:0;
+  background:url(/textures/paper-texture.webp) center/cover;
+  opacity:.15;pointer-events:none;z-index:0
+}
+
+/* Clip-path helpers */
+.clip-torn{
+  clip-path:polygon(0% 0%,100% 0%,100% 0%,98% 10%,100% 20%,97% 35%,100% 50%,98% 65%,100% 80%,97% 90%,100% 100%,90% 97%,80% 100%,70% 96%,60% 100%,50% 97%,40% 100%,30% 96%,20% 100%,10% 97%,0% 100%,0% 100%,2% 90%,0% 80%,3% 65%,0% 50%,2% 35%,0% 20%,3% 10%,0% 0%)
+}
+
+/* Preloader */
+#preloader{
+  position:fixed;inset:0;z-index:1000;pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;
+  background:#fafafa;
+}
+#preloader .paper-left,#preloader .paper-right{
+  position:absolute;top:0;bottom:0;width:50%;height:100%;
+  background:#fff;background-image:url(/textures/paper-texture.webp);
+  background-size:cover;
+  filter:drop-shadow(0 0 10px rgba(0,0,0,.1));
+}
+#preloader .paper-left{left:0}
+#preloader .paper-right{right:0}
+#preloader .pct{
+  position:relative;z-index:10;
+  font-family:Caveat,cursive;font-size:2.5rem;color:#0a0a0a;
+  mix-blend-mode:multiply
+}
+
+/* Main layout */
+#app{
+  width:100%;height:100vh;height:100dvh;
+  display:flex;flex-direction:column;background:#fafafa;
+  background-image:url(/textures/paper-texture.webp);
+  background-size:cover;background-attachment:fixed;
+  position:relative
+}
+#app::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(250,250,250,.7);pointer-events:none;z-index:0
+}
+
+/* Canvas / 3D viewport area */
+#viewport{
+  flex:1;position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+
+/* SVG Corridor Illustration */
+#corridor-scene{
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+#corridor-scene svg{
+  width:100%;height:100%;max-width:900px;max-height:600px;
+}
+
+/* Doors in corridor (positioned over SVG) */
+.door-zone{
+  position:absolute;cursor:pointer;z-index:5;
+  transition:transform .3s ease,filter .3s ease;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cabin Sketch',cursive;font-size:clamp(.7rem,1.2vw,1rem);
+  font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:1px;
+  text-shadow:-1px -1px 0 rgba(255,255,255,.8),1px -1px 0 rgba(255,255,255,.8),-1px 1px 0 rgba(255,255,255,.8),1px 1px 0 rgba(255,255,255,.8);
+}
+.door-zone:hover{transform:scale(1.05);filter:brightness(1.1)}
+.door-zone svg{width:100%;height:100%;position:absolute;top:0;left:0;pointer-events:none}
+.door-label{position:relative;z-index:1;pointer-events:none}
+
+/* Top nav bar */
+#top-nav{
+  position:absolute;top:0;left:0;right:0;z-index:20;
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:16px 20px;pointer-events:none;
+}
+#top-nav>*{pointer-events:auto}
+.nav-btn-group{display:flex;gap:10px}
+.nav-btn-group.end{justify-content:flex-end}
+
+/* Nav button paper style */
+.nav-btn{
+  position:relative;width:44px;height:48px;
+  display:flex;align-items:center;justify-content:center;
+  background:transparent;border:none;cursor:pointer;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.12));
+  transition:transform .2s;
+}
+.nav-btn:hover{transform:translateY(-2px)}
+.nav-btn svg{width:20px;height:20px;fill:none;stroke:#1a1a1a;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;z-index:1}
+.nav-btn .paper-clip-bg{
+  position:absolute;inset:0;
+  background:linear-gradient(#ffffffb3,#ffffffb3),url(/textures/paper-texture.webp) center/cover;
+  clip-path:polygon(0% 0%,100% 0%,100% 0%,96% 12%,100% 24%,97% 38%,100% 50%,98% 62%,100% 76%,97% 88%,100% 100%,92% 97%,82% 100%,72% 96%,60% 100%,50% 97%,40% 100%,30% 96%,18% 100%,10% 97%,0% 100%,0% 100%,2% 88%,0% 76%,3% 62%,0% 50%,2% 38%,0% 24%,3% 12%,0% 0%);
+}
+.nav-btn .border-overlay{
+  position:absolute;inset:0;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 55' preserveAspectRatio='none'%3E%3Cpath d='M0 0 L50 0 L49 5.5 L50 11 L48.5 19 L50 27.5 L49 36 L50 44 L48.5 49.5 L50 55 L45 54 L40 55 L35 53 L30 55 L25 54 L20 55 L15 53 L10 55 L5 54 L0 55 L1 49.5 L0 44 L1.5 36 L0 27.5 L1 19 L0 11 L1.5 5.5 L0 0 Z' fill='none' stroke='%231a1a1a' stroke-width='1.2'/%3E%3C/svg%3E") 100% 100%/100% 100% no-repeat;
+}
+
+/* Map panel (overlay) */
+.panel-overlay{
+  position:fixed;inset:0;z-index:100;
+  display:none;justify-content:center;align-items:flex-start;
+  padding-top:80px;background:rgba(0,0,0,.2);
+  pointer-events:auto
+}
+.panel-overlay.open{display:flex}
+.panel-overlay.closing{display:flex;animation:fadeOut .3s forwards}
+@keyframes fadeOut{to{opacity:0}}
+
+.paper-panel{
+  position:relative;width:90%;max-width:480px;
+  background:#fff;padding:24px 24px 32px;
+  filter:drop-shadow(0 6px 30px rgba(0,0,0,.2));
+  animation:panelSlideIn .4s cubic-bezier(.16,1,.3,1);
+}
+@keyframes panelSlideIn{
+  0%{opacity:0;transform:translateY(-30px) scale(.97)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+.paper-panel .texture-bg{
+  position:absolute;top:-30%;left:-30%;width:160%;height:160%;
+  background:url(/textures/paper-texture.webp) center/cover;transform:rotate(15deg);
+  z-index:0;pointer-events:none;opacity:.6;
+}
+.paper-panel .clip-inner{
+  clip-path:polygon(0% 0%,4% 1%,8% 0%,12% 1%,16% 0%,20% 1%,24% 0%,28% 1%,32% 0%,36% 1%,40% 0%,44% 1%,48% 0%,52% 1%,56% 0%,60% 1%,64% 0%,68% 1%,72% 0%,76% 1%,80% 0%,84% 1%,88% 0%,92% 1%,96% 0%,100% 0%,100% 0%,99% 3%,100% 6%,98% 10%,100% 14%,99% 18%,100% 22%,98% 26%,100% 30%,99% 35%,100% 40%,98% 45%,100% 50%,99% 55%,100% 60%,98% 65%,100% 70%,99% 75%,100% 80%,98% 85%,100% 90%,99% 95%,100% 100%,96% 99%,92% 100%,88% 98%,84% 100%,80% 99%,76% 100%,72% 98%,68% 100%,64% 99%,60% 100%,56% 98%,52% 100%,48% 99%,44% 100%,40% 98%,36% 100%,32% 99%,28% 100%,24% 98%,20% 100%,16% 99%,12% 100%,8% 98%,4% 100%,0% 99%,0.5% 99.5%,1% 95%,0% 90%,2% 85%,0% 80%,1% 75%,0% 70%,2% 65%,0% 60%,1% 55%,0% 50%,2% 45%,0% 40%,1% 35%,0% 30%,2% 26%,0% 22%,1% 18%,0% 14%,2% 10%,0% 6%,1% 3%,0% 0%);
+}
+.paper-panel>*{position:relative;z-index:1}
+.panel-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:16px;padding-bottom:10px;
+  border-bottom:2px dashed #bbb;
+}
+.panel-header h3{
+  font-family:'Patrick Hand',Caveat,cursive;
+  font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+}
+.close-btn{
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  opacity:.6;transition:opacity .2s,transform .2s;
+}
+.close-btn:hover{opacity:1;transform:scale(1.1)}
+.close-btn svg{width:16px;height:16px;stroke:#1a1a1a;stroke-width:2.5;fill:none;stroke-linecap:round}
+
+/* Map */
+.map-container{position:relative;width:100%;aspect-ratio:4/3;background:#ede7db;border-radius:4px;overflow:hidden}
+.map-room{
+  position:absolute;display:flex;align-items:center;justify-content:center;
+  font-family:'Cabin Sketch',cursive;font-size:.85rem;font-weight:700;
+  cursor:pointer;transition:background .2s;
+  background:rgba(255,255,255,.6);border:2px dashed #1a1a1a;
+}
+.map-room:hover{background:rgba(255,255,255,.9)}
+.map-room.about{top:5%;left:5%;width:28%;height:28%}
+.map-room.gallery{bottom:5%;left:5%;width:28%;height:28%}
+.map-room.contact{top:5%;right:5%;width:28%;height:22%}
+.map-room.studio{bottom:5%;right:5%;width:25%;height:35%}
+.map-room.studio{color:#999;border-style:dotted;cursor:default}
+.map-pin{
+  position:absolute;bottom:48%;left:48%;
+  width:16px;height:16px;background:#1a1a1a;border-radius:50%;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 0 4px rgba(26,26,26,.15),0 0 0 8px rgba(26,26,26,.05);
+}
+
+/* Audio panel (smaller overlay) */
+.audio-panel{
+  position:fixed;top:20px;right:20px;z-index:101;width:240px;
+  filter:drop-shadow(0 4px 20px rgba(0,0,0,.2));
+  display:none;
+}
+.audio-panel.open{display:block}
+.slider-group{margin-bottom:14px}
+.slider-label{
+  display:flex;justify-content:space-between;
+  font-family:'Patrick Hand',Caveat,cursive;font-size:13px;font-weight:700;
+  margin-bottom:6px;
+}
+.paper-slider{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:4px;background:#ccc;border-radius:2px;outline:none;cursor:pointer;
+}
+.paper-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:#1a1a1a;cursor:pointer;box-shadow:1px 1px 3px rgba(0,0,0,.3);
+}
+
+/* Entrance hint bar */
+#entrance-hint{
+  position:fixed;bottom:30px;left:50%;z-index:30;
+  transform:translate(-50%);
+  display:flex;gap:24px;align-items:center;
+  padding:14px 28px;
+  background:rgba(255,255,255,.92);
+  border:2px solid #1a1a1a;border-radius:14px;
+  box-shadow:4px 4px 0 #1a1a1a;
+  font-size:14px;color:#1a1a1a;pointer-events:auto;
+  animation:hintIn .6s ease-out;
+  white-space:nowrap;
+}
+@keyframes hintIn{
+  0%{opacity:0;transform:translate(-50%) translateY(20px)}
+  100%{opacity:1;transform:translate(-50%) translateY(0)}
+}
+#entrance-hint span{display:flex;align-items:center;gap:8px}
+
+/* Room content overlay */
+.room-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.25);
+  display:none;justify-content:center;align-items:center;
+  padding:20px;
+}
+.room-overlay.open{display:flex}
+.room-panel{
+  position:relative;width:100%;max-width:680px;max-height:85vh;overflow-y:auto;
+  background:#fff;padding:36px 32px 32px;
+  filter:drop-shadow(0 10px 40px rgba(0,0,0,.25));
+  animation:panelSlideIn .4s cubic-bezier(.16,1,.3,1);
+}
+.room-panel>.texture-bg{
+  position:absolute;top:-40%;left:-40%;width:180%;height:180%;
+  background:url(/textures/paper-texture.webp) center/cover;transform:rotate(-10deg);
+  z-index:0;pointer-events:none;opacity:.35;
+}
+.room-panel>*:not(.texture-bg){position:relative;z-index:1}
+.room-close{
+  position:absolute;top:16px;right:16px;z-index:5;
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  opacity:.6;transition:opacity .2s,transform .2s;
+}
+.room-close:hover{opacity:1;transform:scale(1.1)}
+.room-close svg{width:20px;height:20px;stroke:#1a1a1a;stroke-width:2.5;fill:none;stroke-linecap:round}
+.room-title{
+  font-family:'Cabin Sketch',cursive;
+  font-size:1.8rem;font-weight:700;margin-bottom:20px;letter-spacing:1px;
+}
+.room-subtitle{
+  font-family:'Cabin Sketch',cursive;
+  font-size:1.15rem;font-weight:700;margin:20px 0 10px;
+}
+.room-text{font-size:15px;line-height:1.7;color:#333;margin-bottom:12px}
+.room-list{list-style:none;padding:0;margin-bottom:12px}
+.room-list li{padding:5px 0;font-size:14px;line-height:1.6;color:#444}
+.room-list li::before{content:'✧ ';color:#1a1a1a}
+.room-link{
+  display:inline-block;margin:8px 16px 0 0;
+  font-family:'Cabin Sketch',cursive;font-size:1.05rem;font-weight:700;
+  color:#1a1a1a;text-decoration:underline;text-underline-offset:4px;
+  transition:opacity .2s;
+}
+.room-link:hover{opacity:.6}
+
+@media(max-width:768px){
+  #entrance-hint{gap:12px;padding:12px 18px;font-size:12px;white-space:normal}
+  .room-panel{padding:24px 20px}
+  .room-title{font-size:1.4rem}
+}
+@media(max-width:480px){
+  #entrance-hint{flex-direction:column;gap:6px;bottom:16px;padding:12px 16px;font-size:11px;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- Preloader -->
+<div id="preloader">
+  <div class="paper-left" id="paperLeft"></div>
+  <div class="paper-right" id="paperRight"></div>
+  <div class="pct" id="pctDisplay">0%</div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+
+  <!-- Top Navigation -->
+  <div id="top-nav">
+    <div class="nav-btn-group">
+      <button class="nav-btn" id="btnBack" style="display:none" aria-label="Back">
+        <span class="paper-clip-bg"></span>
+        <span class="border-overlay"></span>
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+    <div class="nav-btn-group end">
+      <button class="nav-btn" id="btnGallery" aria-label="Gallery">
+        <span class="paper-clip-bg"></span>
+        <span class="border-overlay"></span>
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <button class="nav-btn" id="btnAudio" aria-label="Audio">
+        <span class="paper-clip-bg"></span>
+        <span class="border-overlay"></span>
+        <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      </button>
+      <button class="nav-btn" id="btnMap" aria-label="Map">
+        <span class="paper-clip-bg"></span>
+        <span class="border-overlay"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1a1a1a"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 3D Viewport -->
+  <div id="viewport">
+    <div id="corridor-scene">
+      <svg viewBox="0 0 900 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="4" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <filter id="shadow"><feDropShadow dx="2" dy="4" stdDeviation="6" flood-opacity=".15"/></filter>
+          <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f0e6"/><stop offset="100%" stop-color="#ede6d6"/></linearGradient>
+          <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#dcd3c0"/><stop offset="100%" stop-color="#c8bea8"/></linearGradient>
+          <linearGradient id="ceilingGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0ece3"/><stop offset="100%" stop-color="#e8e3d8"/></linearGradient>
+          <pattern id="paperTex" width="200" height="200" patternUnits="userSpaceOnUse">
+            <rect width="200" height="200" fill="#f5f0e6"/>
+            <rect width="200" height="200" fill="url(/textures/paper-texture.webp)" opacity=".08"/>
+          </pattern>
+        </defs>
+
+        <!-- Floor -->
+        <polygon points="0,600 900,600 750,380 150,380" fill="url(#floorGrad)" filter="url(#shadow)"/>
+        <!-- Floor boards -->
+        <line x1="150" y1="520" x2="750" y2="520" stroke="#bfb49c" stroke-width="1" opacity=".5"/>
+        <line x1="100" y1="440" x2="800" y2="440" stroke="#bfb49c" stroke-width="1" opacity=".4"/>
+        <line x1="80" y1="400" x2="820" y2="400" stroke="#bfb49c" stroke-width="1" opacity=".3"/>
+
+        <!-- Left wall -->
+        <polygon points="0,0 150,60 150,430 0,600" fill="url(#wallGrad)" filter="url(#shadow)"/>
+        <!-- Right wall -->
+        <polygon points="900,0 750,60 750,430 900,600" fill="url(#wallGrad)" filter="url(#shadow)"/>
+
+        <!-- Back wall -->
+        <polygon points="150,60 750,60 750,380 150,380" fill="url(#paperTex)" filter="url(#shadow)"/>
+        <!-- Back wall paper overlay -->
+        <polygon points="150,60 750,60 750,380 150,380" fill="url(/textures/paper-texture.webp)" opacity=".06"/>
+
+        <!-- Ceiling -->
+        <polygon points="0,0 900,0 750,60 150,60" fill="url(#ceilingGrad)"/>
+
+        <!-- Wall trims -->
+        <polygon points="0,0 900,0 900,8 0,8" fill="#d4cdbc"/>
+        <polygon points="150,60 750,60 750,68 150,68" fill="#d4cdbc"/>
+        <!-- Floor trim -->
+        <polygon points="0,590 150,370 750,370 900,590" fill="none" stroke="#d4cdbc" stroke-width="6"/>
+        <polygon points="0,595 150,375 750,375 900,595" fill="none" stroke="#c8bea8" stroke-width="3"/>
+
+        <!-- Baseboards -->
+        <polygon points="0,560 150,350 750,350 900,560" fill="none" stroke="#d4cdbc" stroke-width="12" opacity=".7"/>
+
+        <!-- Light fixture (ceiling) -->
+        <ellipse cx="450" cy="40" rx="20" ry="6" fill="#e8dcc8" stroke="#c4b89e" stroke-width="1"/>
+        <line x1="450" y1="46" x2="450" y2="55" stroke="#c4b89e" stroke-width="2"/>
+
+        <!-- CENTER DOOR (GALLERY) -->
+        <rect x="370" y="120" width="160" height="230" rx="2" fill="#ede4d0" stroke="#c4b89e" stroke-width="3" filter="url(#shadow)"/>
+        <!-- Door panels -->
+        <rect x="380" y="135" width="60" height="90" rx="1" fill="none" stroke="#d4c8b0" stroke-width="1.5"/>
+        <rect x="460" y="135" width="60" height="90" rx="1" fill="none" stroke="#d4c8b0" stroke-width="1.5"/>
+        <rect x="380" y="240" width="60" height="95" rx="1" fill="none" stroke="#d4c8b0" stroke-width="1.5"/>
+        <rect x="460" y="240" width="60" height="95" rx="1" fill="none" stroke="#d4c8b0" stroke-width="1.5"/>
+        <!-- Door handle -->
+        <circle cx="480" cy="230" r="5" fill="#333"/>
+        <!-- Door arch -->
+        <path d="M370 120 Q450 95 530 120" fill="none" stroke="#c4b89e" stroke-width="3"/>
+
+        <!-- LEFT DOOR (ABOUT) -->
+        <g transform="translate(-2,0)">
+          <rect x="195" y="175" width="100" height="175" rx="2" fill="#ede4d0" stroke="#c4b89e" stroke-width="3" filter="url(#shadow)"/>
+          <rect x="205" y="190" width="80" height="65" rx="1" fill="none" stroke="#d4c8b0" stroke-width="1.5"/>
+          <rect x="205" y="270" width="80" height="65" rx="1" fill="none" stroke="#d4c8b0" stroke-width="1.5"/>
+          <circle cx="275" cy="255" r="4" fill="#333"/>
+          <path d="M195 175 Q245 155 295 175" fill="none" stroke="#c4b89e" stroke-width="2.5"/>
+        </g>
+
+        <!-- RIGHT DOOR (CONTACT) -->
+        <g transform="translate(2,0)">
+          <rect x="605" y="175" width="100" height="175" rx="2" fill="#ede4d0" stroke="#c4b89e" stroke-width="3" filter="url(#shadow)"/>
+          <rect x="615" y="190" width="80" height="65" rx="1" fill="none" stroke="#d4c8b0" stroke-width="1.5"/>
+          <rect x="615" y="270" width="80" height="65" rx="1" fill="none" stroke="#d4c8b0" stroke-width="1.5"/>
+          <circle cx="625" cy="255" r="4" fill="#333"/>
+          <path d="M605 175 Q655 155 705 175" fill="none" stroke="#c4b89e" stroke-width="2.5"/>
+        </g>
+
+        <!-- Gallery sign -->
+        <rect x="400" y="82" width="100" height="24" rx="2" fill="#e0d7c0" stroke="#c4b89e" stroke-width="1.5"/>
+        <text x="450" y="98" text-anchor="middle" font-family="'Cabin Sketch',cursive" font-size="13" font-weight="700" fill="#1a1a1a">GALLERY</text>
+
+        <!-- Sconce lights -->
+        <circle cx="160" cy="160" r="6" fill="#f0d8a0" opacity=".7"/>
+        <circle cx="160" cy="160" r="10" fill="#f0d8a0" opacity=".15"/>
+        <circle cx="740" cy="160" r="6" fill="#f0d8a0" opacity=".7"/>
+        <circle cx="740" cy="160" r="10" fill="#f0d8a0" opacity=".15"/>
+
+        <!-- Warm light overlay -->
+        <ellipse cx="450" cy="400" rx="350" ry="180" fill="#fff5e6" opacity=".04"/>
+      </svg>
+
+      <!-- Interactive door zones (positioned over the SVG doors) -->
+      <div class="door-zone gallery" style="top:19%;left:44%;width:18%;height:40%" data-room="gallery">
+        <span class="door-label">GALLERY</span>
+      </div>
+      <div class="door-zone about" style="top:29%;left:21%;width:12%;height:30%" data-room="about">
+        <span class="door-label">ABOUT</span>
+      </div>
+      <div class="door-zone contact" style="top:29%;right:21%;width:12%;height:30%" data-room="contact">
+        <span class="door-label">CONTACT</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Entrance Hint -->
+  <div id="entrance-hint">
+    <span>&#9754; Click a door to explore</span>
+    <span>&#8999; Use WASD / arrow keys to look around</span>
+  </div>
+
+</div>
+
+<!-- Map Overlay Panel -->
+<div class="panel-overlay" id="mapOverlay">
+  <div class="paper-panel">
+    <div class="texture-bg"></div>
+    <div class="panel-header">
+      <h3>THE CORRIDOR</h3>
+      <button class="close-btn" id="mapClose"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="map-container">
+      <div class="map-room about" data-room="about">ABOUT</div>
+      <div class="map-room gallery" data-room="gallery">GALLERY</div>
+      <div class="map-room contact" data-room="contact">CONTACT</div>
+      <div class="map-room studio">STUDIO</div>
+      <div class="map-pin"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Audio Panel -->
+<div class="audio-panel" id="audioPanel">
+  <div class="paper-panel" style="padding:18px 18px 22px">
+    <div class="texture-bg"></div>
+    <div class="panel-header" style="margin-bottom:10px;padding-bottom:6px">
+      <h3>AUDIO</h3>
+      <button class="close-btn" id="audioClose"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Master</span><span id="masterVal">80%</span></div>
+      <input type="range" min="0" max="1" step=".01" value=".8" class="paper-slider" id="masterSlider">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>SFX</span><span id="sfxVal">60%</span></div>
+      <input type="range" min="0" max="1" step=".01" value=".6" class="paper-slider" id="sfxSlider">
+    </div>
+  </div>
+</div>
+
+<!-- Room Content Overlay -->
+<div class="room-overlay" id="roomOverlay">
+  <div class="room-panel">
+    <div class="texture-bg"></div>
+    <button class="room-close" id="roomClose"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <div id="roomContent"></div>
+  </div>
+</div>
+
+<script>
+// Preloader animation
+(function(){
+  const preloader = document.getElementById('preloader');
+  const left = document.getElementById('paperLeft');
+  const right = document.getElementById('paperRight');
+  const pct = document.getElementById('pctDisplay');
+  let progress = 0;
+
+  function animatePreloader() {
+    if (progress < 100) {
+      progress += Math.random() * 8 + 2;
+      if (progress > 100) progress = 100;
+      pct.textContent = Math.round(progress) + '%';
+      requestAnimationFrame(animatePreloader);
+    }
+  }
+  animatePreloader();
+
+  setTimeout(() => {
+    left.style.transition = 'transform .8s cubic-bezier(.16,1,.3,1)';
+    right.style.transition = 'transform .8s cubic-bezier(.16,1,.3,1)';
+    left.style.transform = 'translateX(-100%)';
+    right.style.transform = 'translateX(100%)';
+    pct.style.transition = 'opacity .4s';
+    pct.style.opacity = '0';
+    setTimeout(() => {
+      preloader.style.display = 'none';
+    }, 900);
+  }, 2000);
+})();
+
+// App State
+let currentRoom = null;
+let hintTimeout = null;
+
+const roomData = {
+  gallery: {
+    title: 'THE GALLERY',
+    sections: [
+      { subtitle: 'MoneTune — Full-Stack Financial Dashboard', text: 'MoneTune is an expansive, full-stack web application for personal finance tracking. Built with a modern React frontend and a secure, scalable backend. The UI features complex data visualization charts, real-time updates, and an intuitive dashboard.' },
+      { subtitle: 'TimberKitty — Interactive Web Experience', text: 'TimberKitty is a highly interactive, animated web experience utilizing modern CSS and advanced logic to create a game-like interface. It focuses on micro-interactions, smooth transitions, and cross-browser compatibility using GSAP and custom hooks.' },
+      { subtitle: 'Young Multi Concept — 3D Collaboration', text: 'A cutting-edge web development initiative incorporating WebGL and Three.js. Uses scroll-based storytelling mapped to a 3D environment with custom shaders and GLTF model compression.' },
+    ]
+  },
+  about: {
+    title: 'THE STUDIO',
+    sections: [
+      { subtitle: 'My Developer Journey', text: 'My name is Tomasz Szmajda (ITom), and I am a dedicated Frontend Developer with a profound specialization in interactive web experiences. My journey in software engineering began with a fascination for how logic and aesthetics intertwine.' },
+      { subtitle: 'Core Technical Skills & Stack', list: [
+        'Core: JavaScript (ES6+), TypeScript, HTML5, CSS (SCSS, Tailwind)',
+        'Frameworks: React.js, Next.js, state management, complex UI logic',
+        '3D & WebGL: Three.js, React Three Fiber (R3F), custom shaders',
+        'Animation: GSAP, Framer Motion, physics-based UI animations',
+        'Backend & Cloud: Node.js, Express, Firebase, Supabase, Vercel',
+        'Design: Figma, Adobe Photoshop, Blender for 3D asset preparation'
+      ]}
+    ]
+  },
+  contact: {
+    title: 'CONTACT',
+    sections: [
+      { subtitle: "Let's Build Something Extraordinary", text: 'I am always open to discussing new freelance projects, remote collaborations, contract work, and full-time opportunities with innovative companies. If your goal is to build a high-performance web application, an award-winning marketing site, or a creative digital campaign, I would love to hear from you.' }
+    ],
+    links: [
+      { label: 'LinkedIn', url: 'https://www.linkedin.com/in/tomasz-szmajda-259337305/' },
+      { label: 'GitHub', url: 'https://github.com/ITomPoland' },
+      { label: 'Instagram (@itom.dev)', url: 'https://www.instagram.com/itom.dev/' }
+    ]
+  }
+};
+
+function openRoom(name) {
+  currentRoom = name;
+  document.getElementById('btnBack').style.display = 'flex';
+  document.getElementById('entrance-hint')?.remove();
+
+  const data = roomData[name];
+  if (!data) return;
+
+  let html = `<h2 class="room-title">${data.title}</h2>`;
+  data.sections.forEach(s => {
+    if (s.subtitle) html += `<h3 class="room-subtitle">${s.subtitle}</h3>`;
+    if (s.text) html += `<p class="room-text">${s.text}</p>`;
+    if (s.list) {
+      html += '<ul class="room-list">';
+      s.list.forEach(item => { html += `<li>${item}</li>`; });
+      html += '</ul>';
+    }
+  });
+  if (data.links) {
+    data.links.forEach(l => {
+      html += `<a href="${l.url}" target="_blank" rel="noopener noreferrer" class="room-link">${l.label} &#8599;</a>`;
+    });
+  }
+
+  document.getElementById('roomContent').innerHTML = html;
+  document.getElementById('roomOverlay').classList.add('open');
+}
+
+function closeRoom() {
+  currentRoom = null;
+  document.getElementById('btnBack').style.display = 'none';
+  document.getElementById('roomOverlay').classList.remove('open');
+}
+
+// Hide entrance hint
+function dismissHint() {
+  const hint = document.getElementById('entrance-hint');
+  if (hint) {
+    hint.style.transition = 'opacity .4s, transform .4s';
+    hint.style.opacity = '0';
+    hint.style.transform = 'translate(-50%) translateY(10px)';
+    setTimeout(() => hint.remove(), 500);
+  }
+}
+
+// Auto-dismiss hint
+hintTimeout = setTimeout(dismissHint, 5000);
+
+// Door clicks
+document.querySelectorAll('.door-zone').forEach(el => {
+  el.addEventListener('click', () => {
+    dismissHint();
+    openRoom(el.dataset.room);
+  });
+});
+
+// Map room clicks
+document.querySelectorAll('.map-room:not(.studio)').forEach(el => {
+  el.addEventListener('click', () => {
+    closeOverlay('mapOverlay');
+    dismissHint();
+    openRoom(el.dataset.room);
+  });
+});
+
+// Nav buttons
+document.getElementById('btnBack').addEventListener('click', closeRoom);
+document.getElementById('btnGallery').addEventListener('click', () => { dismissHint(); openRoom('gallery'); });
+document.getElementById('btnMap').addEventListener('click', () => toggleOverlay('mapOverlay'));
+document.getElementById('btnAudio').addEventListener('click', () => toggleOverlay('audioPanel'));
+document.getElementById('mapClose').addEventListener('click', () => closeOverlay('mapOverlay'));
+document.getElementById('audioClose').addEventListener('click', () => closeOverlay('audioPanel'));
+
+// Overlay helpers
+function toggleOverlay(id) {
+  const el = document.getElementById(id);
+  const isOpen = el.classList.contains('open') || el.style.display === 'block';
+  if (isOpen) closeOverlay(id);
+  else {
+    if (id === 'mapOverlay') {
+      el.classList.add('open');
+      document.getElementById('audioPanel').classList.remove('open');
+    } else {
+      el.classList.add('open');
+      document.getElementById('mapOverlay').classList.remove('open');
+    }
+  }
+}
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close overlay on background click
+document.getElementById('mapOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeOverlay('mapOverlay');
+});
+
+// Close room on overlay click
+document.getElementById('roomOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeRoom();
+});
+
+// Sliders
+document.getElementById('masterSlider').addEventListener('input', function() {
+  document.getElementById('masterVal').textContent = Math.round(this.value * 100) + '%';
+});
+document.getElementById('sfxSlider').addEventListener('input', function() {
+  document.getElementById('sfxVal').textContent = Math.round(this.value * 100) + '%';
+});
+
+// Keyboard
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (currentRoom) closeRoom();
+    closeOverlay('mapOverlay');
+    document.getElementById('audioPanel').classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
